@@ -102,6 +102,7 @@
     .token-box .card { box-shadow: var(--shadow); }
     .hide { display:none !important; }
     .copy-btn { min-width: 42px; padding-left: 10px; padding-right: 10px; }
+    .readonly-pay { background: #f8fafc !important; color: #334155; }
 
     @media (max-width: 980px) {
       .app { grid-template-columns: 1fr; }
@@ -271,25 +272,25 @@
               <div id="bankFields">
                 <div class="field" style="margin-top:12px">
                   <label>Pilih Bank</label>
-                  <input id="bankName" placeholder="Contoh: BCA" />
+                  <input id="bankName" class="readonly-pay" placeholder="Contoh: BCA" readonly />
                 </div>
                 <div class="field" style="margin-top:12px">
                   <label>No. Rekening</label>
                   <div style="display:flex;gap:8px">
-                    <input id="accountNumber" placeholder="1234567890" />
+                    <input id="accountNumber" class="readonly-pay" placeholder="1234567890" readonly />
                     <button class="btn copy-btn" onclick="copyValue('accountNumber')">⧉</button>
                   </div>
                 </div>
                 <div class="field" style="margin-top:12px">
                   <label>Atas Nama</label>
-                  <input id="accountName" placeholder="Toko Busana Online" />
+                  <input id="accountName" class="readonly-pay" placeholder="Toko Busana Online" readonly />
                 </div>
               </div>
               <div class="field" style="margin-top:12px">
                 <label>Status Pembayaran</label>
                 <input id="statusPreview" disabled value="Menunggu Pembayaran" />
               </div>
-              <div class="alert" style="margin-top:14px">ⓘ Nota/tagihan awal akan dikirim ke WhatsApp pelanggan setelah disimpan. Setelah dibayar, validasi dari menu Daftar Nota lalu kirim nota LUNAS.</div>
+              <div class="alert" style="margin-top:14px">ⓘ Nomor rekening otomatis dari Code.gs, jadi tidak perlu diisi berulang. Saat kirim, sistem membuat gambar nota lalu membuka WhatsApp.</div>
             </div>
           </aside>
         </div>
@@ -297,7 +298,7 @@
         <div class="actions">
           <button class="btn gray" onclick="resetForm()">⟳ Reset</button>
           <button class="btn primary" onclick="saveInvoice(false)">Simpan Nota</button>
-          <button class="btn green" onclick="saveInvoice(true)">Simpan & Kirim Tagihan</button>
+          <button class="btn green" onclick="saveInvoice(true)">Simpan & Kirim Tagihan + Gambar</button>
         </div>
       </section>
 
@@ -575,9 +576,9 @@
         if (!res.ok) throw new Error(res.message);
         toast(res.message || 'Nota berhasil dibuat.');
 
-        if (sendAfterSave && res.whatsappUrl) {
-          window.open(res.whatsappUrl, '_blank');
-          await api('markFirstInvoiceSent', { invoiceId: res.invoice.invoiceId, mode: 'Manual WhatsApp' });
+        if (sendAfterSave) {
+          const mode = await sendInvoiceWithImage(res.invoice, res.items, 'awal');
+          await api('markFirstInvoiceSent', { invoiceId: res.invoice.invoiceId, mode });
         }
 
         resetForm(false);
@@ -717,15 +718,14 @@
       const data = state.selectedInvoice;
       if (!data || !data.invoice) return;
       const inv = data.invoice;
-      const url = buildWaUrl(inv.customerPhone, buildFirstMessage(inv, data.items));
-      window.open(url, '_blank');
       try {
-        await api('markFirstInvoiceSent', { invoiceId: inv.invoiceId, mode: 'Manual WhatsApp' });
+        const mode = await sendInvoiceWithImage(inv, data.items, 'awal');
+        await api('markFirstInvoiceSent', { invoiceId: inv.invoiceId, mode });
         toast('Tagihan awal ditandai terkirim.');
         closeModal('detailModal');
         await loadInvoices();
       } catch (err) {
-        toast(err.message || 'Gagal menandai terkirim.');
+        toast(err.message || 'Gagal mengirim tagihan awal.');
       }
     }
 
@@ -787,14 +787,14 @@
     async function sendPaidWhatsApp() {
       const res = state.paidResult;
       if (!res || !res.invoice) return;
-      if (res.whatsappUrl) window.open(res.whatsappUrl, '_blank');
       try {
-        await api('markPaidNoteSent', { invoiceId: res.invoice.invoiceId, mode: 'Manual WhatsApp' });
+        const mode = await sendInvoiceWithImage(res.invoice, res.items, 'lunas');
+        await api('markPaidNoteSent', { invoiceId: res.invoice.invoiceId, mode });
         toast('Nota lunas ditandai terkirim.');
         closeModal('successModal');
         await loadInvoices();
       } catch (err) {
-        toast(err.message || 'Gagal menandai nota lunas terkirim.');
+        toast(err.message || 'Gagal mengirim nota lunas.');
       }
     }
 
@@ -814,11 +814,304 @@
         lines.push(`Atas Nama: ${inv.accountName}`);
       }
       lines.push('');
+      lines.push('Gambar nota/tagihan saya lampirkan.');
       lines.push('Detail nota:');
       lines.push(inv.publicUrl);
       lines.push('');
       lines.push(isTransfer(inv.paymentMethod) ? 'Silakan lakukan pembayaran sesuai total bayar, lalu kirim bukti pembayaran melalui WhatsApp ini.' : 'Pembayaran dapat dilakukan secara cash sesuai kesepakatan.');
       return lines.join('\n');
+    }
+
+    function buildPaidMessage(inv, items) {
+      const lines = [];
+      lines.push(`Halo ${inv.customerName}, pembayaran Anda sudah kami terima.`);
+      lines.push('');
+      lines.push('*NOTA LUNAS*');
+      lines.push(`No Nota: *${inv.invoiceId}*`);
+      lines.push(`Total: *${rupiah(inv.total)}*`);
+      lines.push('Status: *LUNAS*');
+      lines.push('');
+      lines.push('Gambar nota lunas saya lampirkan.');
+      lines.push('Detail nota lunas:');
+      lines.push(inv.publicUrl);
+      lines.push('');
+      lines.push(`Terima kasih sudah berbelanja di ${state.business.businessName || 'toko kami'}.`);
+      return lines.join('\n');
+    }
+
+    async function sendInvoiceWithImage(inv, items, type) {
+      const isPaid = type === 'lunas' || inv.status === 'Lunas';
+      const message = isPaid ? buildPaidMessage(inv, items) : buildFirstMessage(inv, items);
+      const filename = `${isPaid ? 'nota-lunas' : 'tagihan'}-${inv.invoiceId}.png`;
+      const file = await createInvoiceImageFile(inv, items || [], isPaid, filename);
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: isPaid ? `Nota Lunas ${inv.invoiceId}` : `Tagihan ${inv.invoiceId}`,
+            text: message,
+            files: [file]
+          });
+          return isPaid ? 'Share HP WhatsApp + Gambar Lunas' : 'Share HP WhatsApp + Gambar Tagihan';
+        } catch (err) {
+          if (err && err.name === 'AbortError') {
+            toast('Share dibatalkan. WhatsApp akan dibuka tanpa gambar otomatis.');
+          }
+        }
+      }
+
+      downloadBlob(file, filename);
+      window.open(buildWaUrl(inv.customerPhone, message), '_blank');
+      toast('Gambar nota sudah diunduh. Lampirkan gambar PNG itu di WhatsApp yang terbuka.');
+      return isPaid ? 'Manual WhatsApp + Download Gambar Lunas' : 'Manual WhatsApp + Download Gambar Tagihan';
+    }
+
+    function createInvoiceImageFile(inv, items, isPaid, filename) {
+      return new Promise((resolve, reject) => {
+        try {
+          const width = 1080;
+          const rowH = 54;
+          const baseH = 920;
+          const payH = isTransfer(inv.paymentMethod) ? 170 : 105;
+          const noteH = inv.note ? 80 : 0;
+          const height = baseH + Math.max(items.length, 1) * rowH + payH + noteH;
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+
+          const blue = '#0f254d';
+          const primary = '#0f62fe';
+          const dark = '#0f172a';
+          const muted = '#64748b';
+          const line = '#dbe4f0';
+          const green = '#16a34a';
+          const orange = '#f59e0b';
+
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+
+          if (isPaid) {
+            ctx.save();
+            ctx.translate(width / 2, height / 2);
+            ctx.rotate(-Math.PI / 7);
+            ctx.textAlign = 'center';
+            ctx.font = '900 150px Arial, sans-serif';
+            ctx.fillStyle = 'rgba(22, 163, 74, 0.12)';
+            ctx.fillText('LUNAS', 0, 0);
+            ctx.restore();
+          }
+
+          let y = 56;
+          ctx.textAlign = 'center';
+          ctx.fillStyle = dark;
+          ctx.font = '900 48px Arial, sans-serif';
+          ctx.fillText(isPaid ? 'NOTA LUNAS' : 'NOTA PEMESANAN', width / 2, y);
+
+          y += 70;
+          ctx.fillStyle = blue;
+          roundRect(ctx, 90, y - 42, 84, 84, 42, true, false);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '900 42px Arial, sans-serif';
+          ctx.fillText('▥', 132, y + 15);
+
+          ctx.textAlign = 'left';
+          ctx.fillStyle = dark;
+          ctx.font = '900 34px Arial, sans-serif';
+          ctx.fillText(state.business.businessName || 'Toko Busana Online', 200, y - 6);
+          ctx.fillStyle = muted;
+          ctx.font = '500 20px Arial, sans-serif';
+          ctx.fillText(state.business.tagline || '', 200, y + 26);
+          ctx.fillText(`☎ ${state.business.phone || ''}  •  ${state.business.instagram || ''}`, 200, y + 58);
+
+          y += 95;
+          dashedLine(ctx, 70, y, width - 70, y, '#94a3b8');
+
+          y += 36;
+          const leftX = 85;
+          const rightX = 590;
+          drawInfo(ctx, leftX, y, 'No. Nota', inv.invoiceId);
+          drawInfo(ctx, leftX, y + 36, 'Tanggal', formatDateHuman(inv.date));
+          drawInfo(ctx, leftX, y + 72, 'Nama', inv.customerName);
+          drawInfo(ctx, leftX, y + 108, 'WhatsApp', inv.customerPhone);
+
+          drawInfo(ctx, rightX, y, 'Metode', inv.paymentMethod);
+          drawInfo(ctx, rightX, y + 36, 'Status', inv.status);
+          if (isPaid && inv.paidAt) drawInfo(ctx, rightX, y + 72, 'Tanggal Lunas', formatDateTime(inv.paidAt));
+
+          y += 160;
+          dashedLine(ctx, 70, y, width - 70, y, '#94a3b8');
+
+          y += 34;
+          const tableX = 70;
+          const tableW = width - 140;
+          roundRect(ctx, tableX, y, tableW, 52, 10, true, false, blue);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '800 20px Arial, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText('No', tableX + 22, y + 34);
+          ctx.fillText('Produk', tableX + 90, y + 34);
+          ctx.textAlign = 'center';
+          ctx.fillText('Qty', tableX + 600, y + 34);
+          ctx.textAlign = 'right';
+          ctx.fillText('Harga', tableX + 780, y + 34);
+          ctx.fillText('Subtotal', tableX + tableW - 26, y + 34);
+
+          y += 52;
+          ctx.font = '500 20px Arial, sans-serif';
+          (items.length ? items : [{ productName: '-', qty: 0, price: 0, subtotal: 0 }]).forEach((item, idx) => {
+            ctx.fillStyle = idx % 2 ? '#ffffff' : '#f8fafc';
+            ctx.fillRect(tableX, y, tableW, rowH);
+            ctx.strokeStyle = line;
+            ctx.beginPath();
+            ctx.moveTo(tableX, y + rowH);
+            ctx.lineTo(tableX + tableW, y + rowH);
+            ctx.stroke();
+
+            ctx.fillStyle = dark;
+            ctx.textAlign = 'left';
+            ctx.fillText(String(idx + 1), tableX + 26, y + 34);
+            fitText(ctx, item.productName || '-', tableX + 90, y + 34, 450);
+            ctx.textAlign = 'center';
+            ctx.fillText(String(item.qty || 0), tableX + 600, y + 34);
+            ctx.textAlign = 'right';
+            ctx.fillText(rupiah(item.price || 0), tableX + 780, y + 34);
+            ctx.font = '800 20px Arial, sans-serif';
+            ctx.fillText(rupiah(item.subtotal || 0), tableX + tableW - 26, y + 34);
+            ctx.font = '500 20px Arial, sans-serif';
+            y += rowH;
+          });
+
+          y += 30;
+          const totalX = 640;
+          drawTotalLine(ctx, totalX, y, 'Subtotal', rupiah(inv.subtotal || inv.total));
+          y += 46;
+          roundRect(ctx, totalX, y, 370, 60, 12, true, false, '#eff6ff');
+          ctx.fillStyle = primary;
+          ctx.font = '900 25px Arial, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText('TOTAL BAYAR', totalX + 20, y + 38);
+          ctx.textAlign = 'right';
+          ctx.fillText(rupiah(inv.total), totalX + 350, y + 38);
+          y += 92;
+
+          roundRect(ctx, 70, y, width - 140, payH - 20, 14, true, true, '#fbfdff', line);
+          ctx.fillStyle = dark;
+          ctx.font = '900 24px Arial, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText('Informasi Pembayaran', 95, y + 38);
+          ctx.font = '500 20px Arial, sans-serif';
+          if (isTransfer(inv.paymentMethod)) {
+            drawInfo(ctx, 95, y + 76, 'Bank/Metode', inv.bankName || inv.paymentMethod);
+            drawInfo(ctx, 95, y + 112, 'No. Rekening', inv.accountNumber || '-');
+            drawInfo(ctx, 560, y + 76, 'Atas Nama', inv.accountName || '-');
+            drawInfo(ctx, 560, y + 112, 'Status', inv.status);
+          } else {
+            drawInfo(ctx, 95, y + 78, 'Metode', inv.paymentMethod);
+            drawInfo(ctx, 95, y + 114, 'Status', inv.status);
+          }
+          y += payH;
+
+          if (inv.note) {
+            roundRect(ctx, 70, y, width - 140, 70, 14, true, true, '#fbfdff', line);
+            ctx.fillStyle = dark;
+            ctx.font = '900 22px Arial, sans-serif';
+            ctx.fillText('Catatan', 95, y + 30);
+            ctx.font = '500 20px Arial, sans-serif';
+            fitText(ctx, inv.note, 95, y + 56, width - 190);
+            y += 95;
+          }
+
+          dashedLine(ctx, 70, y, width - 70, y, '#94a3b8');
+          y += 45;
+          ctx.textAlign = 'center';
+          ctx.fillStyle = dark;
+          ctx.font = '900 24px Arial, sans-serif';
+          ctx.fillText(isPaid ? 'Terima kasih, pembayaran Anda sudah kami terima.' : 'Terima kasih atas pesanan Anda.', width / 2, y);
+          ctx.fillStyle = muted;
+          ctx.font = '500 19px Arial, sans-serif';
+          ctx.fillText(isPaid ? 'Nota ini merupakan bukti pembayaran lunas.' : 'Silakan selesaikan pembayaran sesuai metode yang dipilih.', width / 2, y + 32);
+
+          canvas.toBlob(blob => {
+            if (!blob) return reject(new Error('Gagal membuat gambar nota.'));
+            resolve(new File([blob], filename, { type: 'image/png' }));
+          }, 'image/png', 0.95);
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
+
+    function drawInfo(ctx, x, y, label, value) {
+      ctx.textAlign = 'left';
+      ctx.font = '800 20px Arial, sans-serif';
+      ctx.fillStyle = '#334155';
+      ctx.fillText(label, x, y);
+      ctx.font = '500 20px Arial, sans-serif';
+      ctx.fillStyle = '#0f172a';
+      fitText(ctx, String(value || '-'), x + 160, y, 290);
+    }
+
+    function drawTotalLine(ctx, x, y, label, value) {
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '700 21px Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(label, x, y);
+      ctx.textAlign = 'right';
+      ctx.fillText(value, x + 350, y);
+      dashedLine(ctx, x, y + 14, x + 350, y + 14, '#cbd5e1');
+    }
+
+    function fitText(ctx, text, x, y, maxWidth) {
+      text = String(text || '');
+      if (ctx.measureText(text).width <= maxWidth) {
+        ctx.fillText(text, x, y);
+        return;
+      }
+      let out = text;
+      while (out.length > 3 && ctx.measureText(out + '...').width > maxWidth) out = out.slice(0, -1);
+      ctx.fillText(out + '...', x, y);
+    }
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke, fillStyle, strokeStyle) {
+      if (fillStyle) ctx.fillStyle = fillStyle;
+      if (strokeStyle) ctx.strokeStyle = strokeStyle;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    function dashedLine(ctx, x1, y1, x2, y2, color) {
+      ctx.save();
+      ctx.strokeStyle = color || '#cbd5e1';
+      ctx.setLineDash([8, 6]);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
     }
 
     function buildWaUrl(phone, message) {
