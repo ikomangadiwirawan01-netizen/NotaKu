@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NotaKu Admin</title>
+  <style>
+    :root {
+      --blue: #0f62fe;
+      --blue-2: #0b54d6;
+      --green: #20a952;
+      --green-soft: #e9f8ef;
+      --red: #ef4444;
+      --orange: #f59e0b;
+      --dark: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--dark);
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 230px 1fr; }
+    .sidebar {
+      background: linear-gradient(180deg, #0f62fe, #0b54d6);
+      color: white;
+      padding: 22px 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; margin-bottom: 28px; }
+    .brand-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: white; color: var(--blue); font-weight: 900; }
+    .nav { display: grid; gap: 8px; }
+    .nav button { border: 0; background: transparent; color: rgba(255,255,255,.88); padding: 12px 14px; border-radius: 12px; display: flex; align-items: center; gap: 10px; text-align: left; transition: .2s; }
+    .nav button.active, .nav button:hover { background: rgba(255,255,255,.14); color: white; }
+    .sidebar-footer { position: absolute; bottom: 22px; left: 16px; right: 16px; font-size: 13px; color: rgba(255,255,255,.8); }
+    .main { padding: 26px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; }
+    .page-title h1 { margin: 0; font-size: 28px; letter-spacing: -.03em; }
+    .page-title p { margin: 4px 0 0; color: var(--muted); }
+    .admin-profile { text-align: right; font-size: 13px; color: var(--muted); display:flex; align-items:center; gap:10px; }
+    .avatar { width: 38px; height: 38px; border-radius: 50%; background: #e2e8f0; display: inline-grid; place-items: center; color: #64748b; font-weight: 900; }
+    .grid-create { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 2px 10px rgba(15,23,42,.03); padding: 18px; margin-bottom: 16px; }
+    .card-title { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; font-size: 17px; font-weight: 800; }
+    .card-title.green { color: #059669; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .form-grid.three { grid-template-columns: 1fr 120px 170px; align-items: end; }
+    .field label { display: block; font-size: 13px; color: #1e293b; font-weight: 700; margin-bottom: 7px; }
+    .field input, .field select, .field textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 9px; padding: 11px 12px; background: white; min-height: 43px; outline: none; }
+    .field textarea { resize: vertical; min-height: 78px; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(15,98,254,.1); }
+    .help { margin-top: 7px; color: var(--muted); font-size: 12px; }
+    .btn { border: 1px solid var(--line); border-radius: 10px; min-height: 42px; padding: 10px 14px; background: white; color: var(--dark); font-weight: 700; display: inline-flex; align-items: center; justify-content:center; gap: 8px; text-decoration: none; }
+    .btn.primary { background: var(--blue); border-color: var(--blue); color: white; }
+    .btn.primary:hover { background: var(--blue-2); }
+    .btn.green { background: #22c55e; border-color: #22c55e; color: white; }
+    .btn.green-soft { background: var(--green-soft); border-color: #86efac; color: #15803d; }
+    .btn.red { background: #fff1f2; border-color: #fecdd3; color: var(--red); }
+    .btn.gray { background: #f8fafc; }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+    table { width: 100%; border-collapse: collapse; overflow: hidden; }
+    th { background: #f8fafc; color: #334155; font-size: 13px; text-align: left; padding: 13px 12px; border-bottom: 1px solid var(--line); }
+    td { padding: 13px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
+    .right { text-align: right; }
+    .center { text-align: center; }
+    .empty { text-align: center; color: var(--muted); padding: 26px; }
+    .summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #cbd5e1; }
+    .summary-total { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; font-size: 22px; font-weight: 900; color: var(--blue); }
+    .alert { border-radius: 12px; padding: 13px; background: #eff6ff; color: #1e40af; font-size: 14px; border: 1px solid #bfdbfe; line-height: 1.5; }
+    .status { display: inline-flex; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 900; white-space: nowrap; }
+    .status.wait { background: #fff7ed; color: #c2410c; }
+    .status.unpaid { background: #f1f5f9; color: #475569; }
+    .status.paid { background: #dcfce7; color: #15803d; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .toolbar-list { display: grid; grid-template-columns: minmax(240px, 1fr) 180px 160px 160px auto; gap: 10px; align-items: end; margin-bottom: 14px; }
+    .small-actions { display:flex; gap:7px; flex-wrap:wrap; }
+    .small-btn { min-height: 34px; padding: 7px 10px; border-radius: 8px; font-size: 12px; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 16px; }
+    .modal-backdrop.show { display: flex; }
+    .modal { width: min(520px, 100%); background: white; border-radius: 18px; box-shadow: var(--shadow); padding: 20px; border: 1px solid var(--line); }
+    .modal h2 { margin: 0 0 8px; }
+    .modal p { color: var(--muted); line-height: 1.5; }
+    .modal-grid { display:grid; gap:10px; margin: 14px 0; }
+    .modal-line { display:flex; justify-content:space-between; gap:16px; border-bottom:1px dashed #e2e8f0; padding:8px 0; }
+    .toast { position: fixed; right: 20px; bottom: 20px; background: #0f172a; color: white; padding: 14px 16px; border-radius: 12px; z-index: 2000; box-shadow: var(--shadow); display:none; max-width: 360px; }
+    .toast.show { display:block; }
+    .loading { opacity: .65; pointer-events: none; }
+    .token-box { max-width: 520px; margin: 10vh auto; }
+    .token-box .card { box-shadow: var(--shadow); }
+    .hide { display:none !important; }
+    .copy-btn { min-width: 42px; padding-left: 10px; padding-right: 10px; }
+
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { height: auto; position: static; border-radius: 0 0 18px 18px; }
+      .sidebar-footer { position: static; margin-top: 18px; }
+      .nav { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .main { padding: 16px; }
+      .grid-create { grid-template-columns: 1fr; }
+      .toolbar-list { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .topbar { align-items: flex-start; }
+      .admin-profile { display:none; }
+      .page-title h1 { font-size: 25px; }
+      .form-grid, .form-grid.three { grid-template-columns: 1fr; }
+      .card { padding: 15px; border-radius: 14px; }
+      .actions { display:grid; grid-template-columns: 1fr 1fr; }
+      .actions .btn.green { grid-column: 1 / -1; }
+      .toolbar-list { grid-template-columns: 1fr; }
+      .table-wrap { overflow-x: auto; }
+      table { min-width: 620px; }
+      .summary-total { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <script>
+    /********************************************************
+     * WAJIB DIGANTI SETELAH DEPLOY APPS SCRIPT
+     * Contoh:
+     * const API_URL = 'https://script.google.com/macros/s/AKfycbxxxx/exec';
+     ********************************************************/
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyHafpe1jKZjATmIBu2mt7ZJLE64OjUnA1qlYLr-AsOj-aaLdgNI5IkFpNiRRBdt7M6/exec';
+  </script>
+
+  <div id="tokenScreen" class="token-box hide">
+    <div class="card">
+      <h1 style="margin-top:0">Masuk Admin NotaKu</h1>
+      <p style="color:var(--muted);line-height:1.6">Masukkan kode admin yang Anda set di <b>APP_CONFIG.ADMIN_TOKEN</b> pada Code.gs.</p>
+      <div class="field">
+        <label>Kode Admin</label>
+        <input id="adminTokenInput" type="password" placeholder="Masukkan kode admin" />
+      </div>
+      <div class="actions" style="margin-top:14px">
+        <button class="btn primary" onclick="saveAdminToken()">Masuk</button>
+      </div>
+      <p class="help">Kode ini tidak disimpan di GitHub. Kode hanya tersimpan di browser Anda.</p>
+    </div>
+  </div>
+
+  <div id="app" class="app hide">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-icon">▣</span><span id="brandName">NotaKu</span></div>
+      <nav class="nav">
+        <button class="active" data-section="create" onclick="showSection('create')">⌂ Buat Nota</button>
+        <button data-section="list" onclick="showSection('list'); loadInvoices();">▤ Daftar Nota</button>
+        <button onclick="copyInvoiceUrl()">🔗 Link Website</button>
+        <button onclick="logoutToken()">↪ Keluar</button>
+      </nav>
+      <div class="sidebar-footer">
+        <b>Versi GitHub Pages</b><br />Frontend GitHub + Backend Apps Script
+      </div>
+    </aside>
+
+    <main class="main">
+      <section id="section-create" class="section active">
+        <div class="topbar">
+          <div class="page-title">
+            <h1>Buat Nota</h1>
+            <p>Buat nota pesanan baru untuk pelanggan Anda.</p>
+          </div>
+          <div class="admin-profile"><span><b id="businessTop">Toko Busana</b><br>Admin</span><span class="avatar">A</span></div>
+        </div>
+
+        <div class="grid-create">
+          <div>
+            <div class="card">
+              <h2 class="card-title">♙ Informasi Nota & Pelanggan</h2>
+              <div class="form-grid">
+                <div class="field">
+                  <label>No. Nota</label>
+                  <input id="invoiceIdPreview" disabled value="Memuat..." />
+                </div>
+                <div class="field">
+                  <label>Tanggal</label>
+                  <input id="invoiceDate" type="date" />
+                </div>
+                <div class="field">
+                  <label>Nama Pelanggan</label>
+                  <input id="customerName" placeholder="Contoh: Siti Nurhaliza" />
+                </div>
+                <div class="field">
+                  <label>No. WhatsApp</label>
+                  <input id="customerPhone" placeholder="Contoh: 0812-3456-7890" />
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 class="card-title green">▢ Tambah Item Produk</h2>
+              <div class="form-grid three">
+                <div class="field">
+                  <label>Nama Produk</label>
+                  <input id="productName" placeholder="Masukkan nama produk" />
+                  <div class="help">Produk diketik manual, tidak perlu database produk tetap.</div>
+                </div>
+                <div class="field">
+                  <label>Qty</label>
+                  <input id="qty" type="number" min="1" value="1" />
+                </div>
+                <div class="field">
+                  <label>Harga Satuan</label>
+                  <input id="price" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this)" />
+                </div>
+              </div>
+              <div class="actions" style="margin-top:14px">
+                <button class="btn primary" onclick="addItem()">＋ Tambah Item</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 class="card-title">Daftar Item Produk</h2>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:60px">No</th>
+                      <th>Nama Produk</th>
+                      <th class="center" style="width:90px">Qty</th>
+                      <th class="right" style="width:150px">Harga Satuan</th>
+                      <th class="right" style="width:150px">Subtotal</th>
+                      <th class="center" style="width:80px">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="itemRows">
+                    <tr><td colspan="6" class="empty">Belum ada item produk.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="field">
+                <label>Catatan (Opsional)</label>
+                <input id="note" placeholder="Contoh: Warna navy, ukuran L" />
+              </div>
+            </div>
+          </div>
+
+          <aside>
+            <div class="card">
+              <h2 class="card-title">Ringkasan Pembayaran</h2>
+              <div class="summary-row"><span>Subtotal</span><strong id="subtotalText">Rp0</strong></div>
+              <div class="summary-total"><span>Total Bayar</span><span id="totalText">Rp0</span></div>
+            </div>
+
+            <div class="card">
+              <h2 class="card-title">Pembayaran</h2>
+              <div class="field">
+                <label>Metode Pembayaran</label>
+                <select id="paymentMethod" onchange="handlePaymentMethodChange()">
+                  <option>Transfer Bank</option>
+                  <option>QRIS</option>
+                  <option>Cash</option>
+                </select>
+              </div>
+              <div id="bankFields">
+                <div class="field" style="margin-top:12px">
+                  <label>Pilih Bank</label>
+                  <input id="bankName" placeholder="Contoh: BCA" />
+                </div>
+                <div class="field" style="margin-top:12px">
+                  <label>No. Rekening</label>
+                  <div style="display:flex;gap:8px">
+                    <input id="accountNumber" placeholder="1234567890" />
+                    <button class="btn copy-btn" onclick="copyValue('accountNumber')">⧉</button>
+                  </div>
+                </div>
+                <div class="field" style="margin-top:12px">
+                  <label>Atas Nama</label>
+                  <input id="accountName" placeholder="Toko Busana Online" />
+                </div>
+              </div>
+              <div class="field" style="margin-top:12px">
+                <label>Status Pembayaran</label>
+                <input id="statusPreview" disabled value="Menunggu Pembayaran" />
+              </div>
+              <div class="alert" style="margin-top:14px">ⓘ Nota/tagihan awal akan dikirim ke WhatsApp pelanggan setelah disimpan. Setelah dibayar, validasi dari menu Daftar Nota lalu kirim nota LUNAS.</div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="actions">
+          <button class="btn gray" onclick="resetForm()">⟳ Reset</button>
+          <button class="btn primary" onclick="saveInvoice(false)">Simpan Nota</button>
+          <button class="btn green" onclick="saveInvoice(true)">Simpan & Kirim Tagihan</button>
+        </div>
+      </section>
+
+      <section id="section-list" class="section">
+        <div class="topbar">
+          <div class="page-title">
+            <h1>Daftar Nota</h1>
+            <p>Kelola semua nota pesanan Anda.</p>
+          </div>
+          <button class="btn primary" onclick="showSection('create')">＋ Buat Nota</button>
+        </div>
+
+        <div class="card">
+          <div class="toolbar-list">
+            <div class="field">
+              <label>Cari Nota</label>
+              <input id="searchQuery" placeholder="Cari no nota, nama, atau WhatsApp..." onkeydown="if(event.key==='Enter') loadInvoices()" />
+            </div>
+            <div class="field">
+              <label>Status</label>
+              <select id="statusFilter">
+                <option>Semua Status</option>
+                <option>Menunggu Pembayaran</option>
+                <option>Belum Dibayar</option>
+                <option>Lunas</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Dari</label>
+              <input id="dateFrom" type="date" />
+            </div>
+            <div class="field">
+              <label>Sampai</label>
+              <input id="dateTo" type="date" />
+            </div>
+            <button class="btn primary" onclick="loadInvoices()">Cari</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>No. Nota</th>
+                  <th>Tanggal</th>
+                  <th>Nama Pelanggan</th>
+                  <th class="right">Total</th>
+                  <th>Metode</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="invoiceRows">
+                <tr><td colspan="7" class="empty">Klik Cari untuk memuat data.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="detailModal" class="modal-backdrop">
+    <div class="modal">
+      <h2 id="detailTitle">Detail Nota</h2>
+      <p id="detailSubtitle">Data nota pesanan.</p>
+      <div id="detailContent" class="modal-grid"></div>
+      <div class="actions">
+        <button class="btn gray" onclick="closeModal('detailModal')">Tutup</button>
+        <a id="detailOpenInvoice" class="btn primary" href="#" target="_blank">Buka Nota</a>
+        <button id="detailSendFirst" class="btn green-soft" onclick="sendFirstFromDetail()">Kirim Tagihan WA</button>
+        <button id="detailPaidBtn" class="btn green" onclick="openPaidModalFromDetail()">Tandai Lunas</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="paidModal" class="modal-backdrop">
+    <div class="modal">
+      <h2>Konfirmasi Tandai Lunas</h2>
+      <p>Pastikan pembayaran sudah benar-benar diterima sebelum menandai nota sebagai lunas.</p>
+      <div id="paidContent" class="modal-grid"></div>
+      <div class="field">
+        <label>Catatan Validasi (Opsional)</label>
+        <input id="validationNote" placeholder="Contoh: Pembayaran via BCA" />
+      </div>
+      <div class="actions" style="margin-top:14px">
+        <button class="btn gray" onclick="closeModal('paidModal')">Batal</button>
+        <button class="btn green" onclick="confirmMarkPaid()">Ya, Tandai Lunas</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="successModal" class="modal-backdrop">
+    <div class="modal" style="text-align:center">
+      <div style="width:72px;height:72px;border-radius:50%;background:#dcfce7;color:#16a34a;display:grid;place-items:center;font-size:38px;margin:0 auto 14px">✓</div>
+      <h2>Nota berhasil divalidasi!</h2>
+      <p>Status pembayaran sudah menjadi <b>LUNAS</b>. Sekarang kirim nota lunas ke WhatsApp pelanggan.</p>
+      <div class="actions" style="justify-content:center">
+        <button class="btn gray" onclick="closeModal('successModal')">Nanti</button>
+        <button class="btn green" onclick="sendPaidWhatsApp()">Kirim Nota Lunas WA</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const state = {
+      business: {},
+      items: [],
+      selectedInvoice: null,
+      paidResult: null,
+      loading: false
+    };
+
+    function init() {
+      if (!API_URL || API_URL.includes('PASTE_URL')) {
+        document.body.innerHTML = `<div class="token-box"><div class="card"><h1>API_URL belum diisi</h1><p style="color:var(--muted);line-height:1.6">Buka file <b>index.html</b>, lalu ganti <b>PASTE_URL_WEB_APP_APPS_SCRIPT_DI_SINI</b> dengan URL deployment Google Apps Script.</p></div></div>`;
+        return;
+      }
+      document.getElementById('invoiceDate').value = today();
+      const token = localStorage.getItem('NOTAKU_ADMIN_TOKEN') || '';
+      if (!token) {
+        document.getElementById('tokenScreen').classList.remove('hide');
+        return;
+      }
+      document.getElementById('app').classList.remove('hide');
+      loadInitialData();
+    }
+
+    function saveAdminToken() {
+      const token = document.getElementById('adminTokenInput').value.trim();
+      if (!token) return toast('Kode admin wajib diisi.');
+      localStorage.setItem('NOTAKU_ADMIN_TOKEN', token);
+      document.getElementById('tokenScreen').classList.add('hide');
+      document.getElementById('app').classList.remove('hide');
+      loadInitialData();
+    }
+
+    function logoutToken() {
+      localStorage.removeItem('NOTAKU_ADMIN_TOKEN');
+      location.reload();
+    }
+
+    async function loadInitialData() {
+      try {
+        setLoading(true);
+        const setup = await api('setupDatabase', {});
+        if (!setup.ok) throw new Error(setup.message);
+        state.business = setup.business || {};
+        applyBusiness();
+        const next = await api('getNextInvoiceNumber', {});
+        if (next.ok) document.getElementById('invoiceIdPreview').value = next.invoiceId;
+        handlePaymentMethodChange();
+        await loadInvoices();
+      } catch (err) {
+        toast(err.message || 'Gagal memuat data awal.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function applyBusiness() {
+      const b = state.business || {};
+      document.getElementById('brandName').textContent = b.appName || 'NotaKu';
+      document.getElementById('businessTop').textContent = b.businessName || 'Toko Busana';
+      document.getElementById('bankName').value = b.defaultBankName || 'BCA';
+      document.getElementById('accountNumber').value = b.defaultAccountNumber || '';
+      document.getElementById('accountName').value = b.defaultAccountName || '';
+    }
+
+    function api(action, data = {}, requiresAuth = true) {
+      return new Promise((resolve, reject) => {
+        const cb = 'notaku_cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+        const params = new URLSearchParams();
+        params.set('action', action);
+        params.set('callback', cb);
+        if (requiresAuth) params.set('token', localStorage.getItem('NOTAKU_ADMIN_TOKEN') || '');
+
+        Object.keys(data || {}).forEach(key => {
+          const value = data[key];
+          if (value === undefined || value === null) return;
+          if (key === 'payload') params.set('payload', JSON.stringify(value));
+          else params.set(key, String(value));
+        });
+
+        const script = document.createElement('script');
+        const sep = API_URL.includes('?') ? '&' : '?';
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('Request terlalu lama. Periksa URL Apps Script dan koneksi internet.'));
+        }, 30000);
+
+        function cleanup() {
+          clearTimeout(timer);
+          delete window[cb];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[cb] = response => {
+          cleanup();
+          resolve(response);
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error('Gagal menghubungi Apps Script. Pastikan Web App sudah deploy sebagai Anyone.'));
+        };
+
+        script.src = API_URL + sep + params.toString();
+        document.body.appendChild(script);
+      });
+    }
+
+    function showSection(name) {
+      document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+      document.getElementById('section-' + name).classList.add('active');
+      document.querySelectorAll('.nav button[data-section]').forEach(btn => btn.classList.toggle('active', btn.dataset.section === name));
+    }
+
+    function addItem() {
+      const productName = document.getElementById('productName').value.trim();
+      const qty = Number(document.getElementById('qty').value || 0);
+      const price = parseMoney(document.getElementById('price').value);
+
+      if (!productName) return toast('Nama produk wajib diisi.');
+      if (qty <= 0) return toast('Qty harus lebih dari 0.');
+      if (price < 0) return toast('Harga tidak valid.');
+
+      state.items.push({ productName, qty, price, subtotal: qty * price });
+      document.getElementById('productName').value = '';
+      document.getElementById('qty').value = 1;
+      document.getElementById('price').value = '';
+      renderItems();
+      document.getElementById('productName').focus();
+    }
+
+    function removeItem(index) {
+      state.items.splice(index, 1);
+      renderItems();
+    }
+
+    function renderItems() {
+      const tbody = document.getElementById('itemRows');
+      if (!state.items.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty">Belum ada item produk.</td></tr>';
+      } else {
+        tbody.innerHTML = state.items.map((item, idx) => `
+          <tr>
+            <td>${idx + 1}</td>
+            <td><b>${escapeHtml(item.productName)}</b></td>
+            <td class="center">${item.qty}</td>
+            <td class="right">${rupiah(item.price)}</td>
+            <td class="right"><b>${rupiah(item.subtotal)}</b></td>
+            <td class="center"><button class="btn red small-btn" onclick="removeItem(${idx})">🗑</button></td>
+          </tr>
+        `).join('');
+      }
+      const total = state.items.reduce((sum, item) => sum + item.subtotal, 0);
+      document.getElementById('subtotalText').textContent = rupiah(total);
+      document.getElementById('totalText').textContent = rupiah(total);
+    }
+
+    function handlePaymentMethodChange() {
+      const method = document.getElementById('paymentMethod').value;
+      const isCash = method.toLowerCase().includes('cash');
+      document.getElementById('bankFields').classList.toggle('hide', isCash);
+      document.getElementById('statusPreview').value = isCash ? 'Belum Dibayar' : 'Menunggu Pembayaran';
+    }
+
+    async function saveInvoice(sendAfterSave) {
+      try {
+        const payload = collectPayload();
+        if (!payload) return;
+        setLoading(true);
+        const res = await api('createInvoice', { payload });
+        if (!res.ok) throw new Error(res.message);
+        toast(res.message || 'Nota berhasil dibuat.');
+
+        if (sendAfterSave && res.whatsappUrl) {
+          window.open(res.whatsappUrl, '_blank');
+          await api('markFirstInvoiceSent', { invoiceId: res.invoice.invoiceId, mode: 'Manual WhatsApp' });
+        }
+
+        resetForm(false);
+        const next = await api('getNextInvoiceNumber', {});
+        if (next.ok) document.getElementById('invoiceIdPreview').value = next.invoiceId;
+        await loadInvoices();
+      } catch (err) {
+        toast(err.message || 'Gagal menyimpan nota.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function collectPayload() {
+      const customerName = document.getElementById('customerName').value.trim();
+      const customerPhone = document.getElementById('customerPhone').value.trim();
+      if (!customerName) { toast('Nama pelanggan wajib diisi.'); return null; }
+      if (!customerPhone) { toast('No. WhatsApp wajib diisi.'); return null; }
+      if (!state.items.length) { toast('Minimal tambah 1 item produk.'); return null; }
+
+      return {
+        date: document.getElementById('invoiceDate').value || today(),
+        customerName,
+        customerPhone,
+        items: state.items,
+        paymentMethod: document.getElementById('paymentMethod').value,
+        bankName: document.getElementById('bankName').value.trim(),
+        accountNumber: document.getElementById('accountNumber').value.trim(),
+        accountName: document.getElementById('accountName').value.trim(),
+        note: document.getElementById('note').value.trim()
+      };
+    }
+
+    function resetForm(resetPreview = true) {
+      document.getElementById('invoiceDate').value = today();
+      document.getElementById('customerName').value = '';
+      document.getElementById('customerPhone').value = '';
+      document.getElementById('productName').value = '';
+      document.getElementById('qty').value = 1;
+      document.getElementById('price').value = '';
+      document.getElementById('note').value = '';
+      document.getElementById('paymentMethod').value = 'Transfer Bank';
+      state.items = [];
+      applyBusiness();
+      handlePaymentMethodChange();
+      renderItems();
+      if (resetPreview) {
+        api('getNextInvoiceNumber', {}).then(next => {
+          if (next.ok) document.getElementById('invoiceIdPreview').value = next.invoiceId;
+        });
+      }
+    }
+
+    async function loadInvoices() {
+      try {
+        const payload = {
+          query: document.getElementById('searchQuery')?.value || '',
+          status: document.getElementById('statusFilter')?.value || 'Semua Status',
+          dateFrom: document.getElementById('dateFrom')?.value || '',
+          dateTo: document.getElementById('dateTo')?.value || ''
+        };
+        const res = await api('listInvoices', { payload });
+        if (!res.ok) throw new Error(res.message);
+        renderInvoiceRows(res.items || []);
+      } catch (err) {
+        document.getElementById('invoiceRows').innerHTML = `<tr><td colspan="7" class="empty">${escapeHtml(err.message || 'Gagal memuat data.')}</td></tr>`;
+      }
+    }
+
+    function renderInvoiceRows(items) {
+      const tbody = document.getElementById('invoiceRows');
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">Belum ada data nota.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = items.map(inv => {
+        const paid = inv.status === 'Lunas';
+        return `
+          <tr>
+            <td><b>${escapeHtml(inv.invoiceId)}</b></td>
+            <td>${formatDateHuman(inv.date)}</td>
+            <td>${escapeHtml(inv.customerName)}</td>
+            <td class="right"><b>${rupiah(inv.total)}</b></td>
+            <td>${escapeHtml(inv.paymentMethod)}</td>
+            <td><span class="status ${statusClass(inv.status)}">${escapeHtml(inv.status)}</span></td>
+            <td>
+              <div class="small-actions">
+                <button class="btn primary small-btn" onclick="openDetail('${escapeAttr(inv.invoiceId)}')">Detail</button>
+                ${paid ? '<button class="btn gray small-btn" disabled>Lunas</button>' : `<button class="btn green-soft small-btn" onclick="openPaid('${escapeAttr(inv.invoiceId)}')">Tandai Lunas</button>`}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function openDetail(invoiceId) {
+      try {
+        setLoading(true);
+        const res = await api('getInvoice', { invoiceId });
+        if (!res.ok) throw new Error(res.message);
+        state.selectedInvoice = res;
+        const inv = res.invoice;
+        document.getElementById('detailTitle').textContent = 'Detail ' + inv.invoiceId;
+        document.getElementById('detailSubtitle').textContent = inv.customerName + ' • ' + rupiah(inv.total);
+        document.getElementById('detailOpenInvoice').href = inv.publicUrl;
+        document.getElementById('detailPaidBtn').classList.toggle('hide', inv.status === 'Lunas');
+        document.getElementById('detailContent').innerHTML = detailLines(inv, res.items).join('');
+        openModal('detailModal');
+      } catch (err) {
+        toast(err.message || 'Gagal membuka detail.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function detailLines(inv, items) {
+      return [
+        line('No Nota', inv.invoiceId),
+        line('Tanggal', formatDateHuman(inv.date)),
+        line('Nama', inv.customerName),
+        line('WhatsApp', inv.customerPhone),
+        line('Metode', inv.paymentMethod),
+        line('Status', inv.status),
+        line('Total', rupiah(inv.total)),
+        line('Item', (items || []).map(i => `${i.productName} x${i.qty}`).join(', ')),
+        line('Nota Tagihan Terkirim', inv.firstInvoiceSent || 'Tidak'),
+        line('Nota Lunas Terkirim', inv.paidNoteSent || 'Tidak')
+      ];
+    }
+
+    function line(label, value) {
+      return `<div class="modal-line"><span>${escapeHtml(label)}</span><b>${escapeHtml(value || '-')}</b></div>`;
+    }
+
+    async function sendFirstFromDetail() {
+      const data = state.selectedInvoice;
+      if (!data || !data.invoice) return;
+      const inv = data.invoice;
+      const url = buildWaUrl(inv.customerPhone, buildFirstMessage(inv, data.items));
+      window.open(url, '_blank');
+      try {
+        await api('markFirstInvoiceSent', { invoiceId: inv.invoiceId, mode: 'Manual WhatsApp' });
+        toast('Tagihan awal ditandai terkirim.');
+        closeModal('detailModal');
+        await loadInvoices();
+      } catch (err) {
+        toast(err.message || 'Gagal menandai terkirim.');
+      }
+    }
+
+    function openPaidModalFromDetail() {
+      if (!state.selectedInvoice) return;
+      closeModal('detailModal');
+      renderPaidModal(state.selectedInvoice);
+      openModal('paidModal');
+    }
+
+    async function openPaid(invoiceId) {
+      try {
+        setLoading(true);
+        const res = await api('getInvoice', { invoiceId });
+        if (!res.ok) throw new Error(res.message);
+        state.selectedInvoice = res;
+        renderPaidModal(res);
+        openModal('paidModal');
+      } catch (err) {
+        toast(err.message || 'Gagal membuka validasi.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function renderPaidModal(data) {
+      const inv = data.invoice;
+      document.getElementById('validationNote').value = '';
+      document.getElementById('paidContent').innerHTML = [
+        line('No Nota', inv.invoiceId),
+        line('Nama Pelanggan', inv.customerName),
+        line('Total Bayar', rupiah(inv.total)),
+        line('Metode Pembayaran', inv.paymentMethod)
+      ].join('');
+    }
+
+    async function confirmMarkPaid() {
+      const data = state.selectedInvoice;
+      if (!data || !data.invoice) return;
+      try {
+        setLoading(true);
+        const res = await api('markInvoicePaid', {
+          invoiceId: data.invoice.invoiceId,
+          validationNote: document.getElementById('validationNote').value.trim(),
+          adminName: 'Admin'
+        });
+        if (!res.ok) throw new Error(res.message);
+        state.paidResult = res;
+        closeModal('paidModal');
+        openModal('successModal');
+        await loadInvoices();
+      } catch (err) {
+        toast(err.message || 'Gagal validasi pembayaran.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function sendPaidWhatsApp() {
+      const res = state.paidResult;
+      if (!res || !res.invoice) return;
+      if (res.whatsappUrl) window.open(res.whatsappUrl, '_blank');
+      try {
+        await api('markPaidNoteSent', { invoiceId: res.invoice.invoiceId, mode: 'Manual WhatsApp' });
+        toast('Nota lunas ditandai terkirim.');
+        closeModal('successModal');
+        await loadInvoices();
+      } catch (err) {
+        toast(err.message || 'Gagal menandai nota lunas terkirim.');
+      }
+    }
+
+    function buildFirstMessage(inv, items) {
+      const lines = [];
+      lines.push(`Halo ${inv.customerName}, berikut nota/tagihan pesanan Anda.`);
+      lines.push('');
+      lines.push(`*${inv.invoiceId}*`);
+      lines.push(`Total: *${rupiah(inv.total)}*`);
+      lines.push(`Status: *${inv.status}*`);
+      lines.push(`Metode: ${inv.paymentMethod}`);
+      if (isTransfer(inv.paymentMethod)) {
+        lines.push('');
+        lines.push('*Informasi Pembayaran:*');
+        lines.push(`Bank: ${inv.bankName}`);
+        lines.push(`No. Rekening: ${inv.accountNumber}`);
+        lines.push(`Atas Nama: ${inv.accountName}`);
+      }
+      lines.push('');
+      lines.push('Detail nota:');
+      lines.push(inv.publicUrl);
+      lines.push('');
+      lines.push(isTransfer(inv.paymentMethod) ? 'Silakan lakukan pembayaran sesuai total bayar, lalu kirim bukti pembayaran melalui WhatsApp ini.' : 'Pembayaran dapat dilakukan secara cash sesuai kesepakatan.');
+      return lines.join('\n');
+    }
+
+    function buildWaUrl(phone, message) {
+      const digits = normalizePhone(phone);
+      return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('show'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+    function setLoading(value) {
+      state.loading = value;
+      document.getElementById('app')?.classList.toggle('loading', value);
+    }
+
+    function toast(message) {
+      const el = document.getElementById('toast');
+      el.textContent = message;
+      el.classList.add('show');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => el.classList.remove('show'), 4200);
+    }
+
+    function rupiah(value) {
+      return 'Rp' + Math.round(Number(value || 0)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+    function parseMoney(value) {
+      const num = String(value || '').replace(/[^0-9]/g, '');
+      return Number(num || 0);
+    }
+    function formatMoneyInput(input) {
+      const value = parseMoney(input.value);
+      input.value = value ? value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+    }
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
+    function escapeAttr(value) { return String(value ?? '').replace(/'/g, '&#39;').replace(/"/g, '&quot;'); }
+    function statusClass(status) {
+      if (status === 'Lunas') return 'paid';
+      if (status === 'Menunggu Pembayaran') return 'wait';
+      return 'unpaid';
+    }
+    function today() { return new Date().toISOString().slice(0, 10); }
+    function formatDateHuman(value) {
+      if (!value) return '-';
+      const parts = String(value).slice(0,10).split('-');
+      if (parts.length !== 3) return value;
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    function normalizePhone(phone) {
+      let digits = String(phone || '').replace(/\D/g, '');
+      if (digits.startsWith('00')) digits = digits.slice(2);
+      if (digits.startsWith('0')) digits = '62' + digits.slice(1);
+      if (digits.startsWith('8')) digits = '62' + digits;
+      return digits;
+    }
+    function isTransfer(method) {
+      const text = String(method || '').toLowerCase();
+      return text.includes('transfer') || text.includes('tf') || text.includes('qris');
+    }
+    function copyValue(id) {
+      const value = document.getElementById(id).value;
+      navigator.clipboard?.writeText(value);
+      toast('Disalin: ' + value);
+    }
+    function copyInvoiceUrl() {
+      const url = location.origin + location.pathname.replace(/index\.html$/, 'invoice.html');
+      navigator.clipboard?.writeText(url);
+      toast('Link dasar invoice disalin.');
+    }
+
+    document.addEventListener('click', e => {
+      if (e.target.classList.contains('modal-backdrop')) e.target.classList.remove('show');
+    });
+
+    init();
+  </script>
+
+  <script>
+    /* Register Service Worker khusus GitHub Pages */
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .catch(error => console.warn('Service worker gagal didaftarkan:', error));
+      });
+    }
+  </script>
+</body>
+</html>
