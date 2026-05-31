@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nota Online</title>
-  <style>
+  <script type="text/javascript" src="https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=Mf5eNakRkQpVv15N9bVNXRuQMGLR_66TojOzY-YAhEKcLAtb76Dtco11xCz7n41U3BioGDOE37paT54C302GHhPaSU4EjbMuyAhiS9B0jRPX_apDsPZneJt_dX_MAb0fUblQ7l3ErmqPnMbq-E_AkqcWykqA_GDehCO5p5zQQm1NB8GQyrmUJ-0I-k3FmX_m8l5IJ7ZJrTfXzi2q9Fz8SSwLGNJXbWF9eg6_6XrIKQDiRVvOhJjtupNwRuCxRiK10DOvE74TZUQdT3LRe1bAqQfUS5BSCEda50ZkNInvBtsfaaHbof3aMJqEK_nCtBtu" charset="UTF-8"></script><style>
     :root {
       --blue: #0f62fe;
       --dark: #0f172a;
@@ -136,6 +136,9 @@
   </div>
 
   <script>
+    const PUBLIC_INVOICE_CACHE_PREFIX = 'NOTAKU_PUBLIC_INVOICE_V1_';
+    const PUBLIC_INVOICE_CACHE_MAX_AGE_MS = 120000;
+
     function api(action, data = {}) {
       return new Promise((resolve, reject) => {
         const cb = 'notaku_public_cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
@@ -180,12 +183,35 @@
         document.getElementById('root').innerHTML = `<div class="error"><h2>No nota tidak ada</h2><p>URL harus memakai format <b>invoice.html?id=NT-...</b></p></div>`;
         return;
       }
+
+      // Jika pembeli membuka ulang nota yang sama, tampilkan salinan terakhir
+      // dari browser seketika lalu perbarui status dari server di latar belakang.
+      const cached = readPublicInvoiceCache(id);
+      if (cached) render(cached.data);
+
       try {
         const res = await api('getPublicInvoice', { invoiceId: id });
+        if (res && res.ok) writePublicInvoiceCache(id, res);
         render(res);
       } catch (err) {
-        document.getElementById('root').innerHTML = `<div class="error"><h2>Gagal memuat nota</h2><p>${escapeHtml(err.message || 'Terjadi kesalahan.')}</p></div>`;
+        if (!cached) {
+          document.getElementById('root').innerHTML = `<div class="error"><h2>Gagal memuat nota</h2><p>${escapeHtml(err.message || 'Terjadi kesalahan.')}</p></div>`;
+        }
       }
+    }
+
+    function readPublicInvoiceCache(id) {
+      try {
+        const cached = JSON.parse(localStorage.getItem(PUBLIC_INVOICE_CACHE_PREFIX + id) || 'null');
+        if (!cached || !cached.data || Date.now() - cached.savedAt > PUBLIC_INVOICE_CACHE_MAX_AGE_MS) return null;
+        return cached;
+      } catch (err) { return null; }
+    }
+
+    function writePublicInvoiceCache(id, data) {
+      try {
+        localStorage.setItem(PUBLIC_INVOICE_CACHE_PREFIX + id, JSON.stringify({ data, savedAt: Date.now() }));
+      } catch (err) {}
     }
 
     function render(data) {
