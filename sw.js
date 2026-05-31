@@ -10,7 +10,7 @@
    di CACHE_NAME, contoh: notaku-cache-v2 menjadi notaku-cache-v3.
 ===================================================== */
 
-const CACHE_NAME = 'notaku-cache-v2';
+const CACHE_NAME = 'notaku-cache-v3';
 const STATIC_ASSETS = [
   './',
   './index.html',
