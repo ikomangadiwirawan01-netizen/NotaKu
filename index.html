@@ -122,7 +122,7 @@
       .nav { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
       .nav button { min-height: 48px; padding: 6px 3px; border-radius: 9px; gap: 2px; justify-content: center; flex-direction: column; text-align: center; font-size: 10px; line-height: 1.15; }
       .main { padding: 10px; }
-      .topbar { align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; }
+      .topbar { align-items: flex-start; margin-bottom: 10px; }
       .admin-profile { display:none; }
       .page-title h1 { font-size: 22px; }
       .page-title p { margin-top: 2px; font-size: 12px; }
@@ -152,8 +152,6 @@
         max-width: 100%;
       }
       .field input, .field select, .field textarea { min-width: 0; max-width: 100%; }
-      #bankFields .field > div { min-width: 0; max-width: 100%; }
-      #accountNumber { flex: 1 1 auto; width: 0; min-width: 0; }
       .table-wrap { width: 100%; overflow: visible; }
 
       /* Tabel admin di HP diubah menjadi kartu vertikal agar tidak melebar. */
@@ -206,7 +204,7 @@
         text-align: center !important;
       }
       #itemRows .empty::before, #invoiceRows .empty::before { display: none; content: none; }
-      #itemRows .small-actions, #invoiceRows .small-actions { min-width: 0; justify-content: flex-end; }
+      #itemRows .small-actions, #invoiceRows .small-actions { justify-content: flex-end; }
       #itemRows + *, #invoiceRows + * { max-width: 100%; }
       .table-wrap table { width: 100%; min-width: 0; table-layout: fixed; }
       .table-wrap thead { display: none; }
@@ -259,7 +257,7 @@
       <div class="brand"><span class="brand-icon">▣</span><span id="brandName">NotaKu</span></div>
       <nav class="nav">
         <button class="active" data-section="create" onclick="showSection('create')">⌂ Buat Nota</button>
-        <button data-section="list" onclick="showSection('list'); loadInvoices();">▤ Daftar Nota</button>
+        <button data-section="list" onclick="showSection('list'); loadInvoices(false);">▤ Daftar Nota</button>
         <button onclick="copyInvoiceUrl()">🔗 Link Website</button>
         <button onclick="logoutToken()">↪ Keluar</button>
       </nav>
@@ -416,7 +414,7 @@
           <div class="toolbar-list">
             <div class="field">
               <label>Cari Nota</label>
-              <input id="searchQuery" placeholder="Cari no nota, nama, atau WhatsApp..." onkeydown="if(event.key==='Enter') loadInvoices()" />
+              <input id="searchQuery" placeholder="Cari no nota, nama, atau WhatsApp..." onkeydown="if(event.key==='Enter') loadInvoices(true)" />
             </div>
             <div class="field">
               <label>Status</label>
@@ -435,7 +433,7 @@
               <label>Sampai</label>
               <input id="dateTo" type="date" />
             </div>
-            <button class="btn primary" onclick="loadInvoices()">Cari</button>
+            <button class="btn primary" onclick="loadInvoices(true)">Cari</button>
           </div>
           <div class="table-wrap">
             <table>
@@ -510,8 +508,15 @@
       items: [],
       selectedInvoice: null,
       paidResult: null,
-      loading: false
+      loading: false,
+      invoiceListPromise: null,
+      invoiceListCacheKey: '',
+      invoiceListLoadedAt: 0
     };
+
+    const BOOTSTRAP_CACHE_KEY = 'NOTAKU_BOOTSTRAP_CACHE_V1';
+    const LIST_CACHE_PREFIX = 'NOTAKU_LIST_CACHE_V1_';
+    const LIST_CACHE_FRESH_MS = 15000;
 
     function init() {
       if (!API_URL || API_URL.includes('PASTE_URL')) {
@@ -543,21 +548,41 @@
     }
 
     async function loadInitialData() {
+      // Tampilkan pengaturan terakhir dari browser terlebih dahulu agar form
+      // langsung siap dipakai sambil backend diperbarui di latar belakang.
+      restoreBootstrapCache();
+      handlePaymentMethodChange();
+
       try {
-        setLoading(true);
-        const setup = await api('setupDatabase', {});
-        if (!setup.ok) throw new Error(setup.message);
-        state.business = setup.business || {};
+        const boot = await api('bootstrapAdmin', {});
+        if (!boot.ok) throw new Error(boot.message);
+        state.business = boot.business || state.business || {};
         applyBusiness();
-        const next = await api('getNextInvoiceNumber', {});
-        if (next.ok) document.getElementById('invoiceIdPreview').value = next.invoiceId;
-        handlePaymentMethodChange();
-        await loadInvoices();
+        if (boot.nextInvoiceId) document.getElementById('invoiceIdPreview').value = boot.nextInvoiceId;
+        saveBootstrapCache(boot);
       } catch (err) {
         toast(err.message || 'Gagal memuat data awal.');
-      } finally {
-        setLoading(false);
       }
+    }
+
+    function restoreBootstrapCache() {
+      try {
+        const cached = JSON.parse(localStorage.getItem(BOOTSTRAP_CACHE_KEY) || 'null');
+        if (!cached) return;
+        state.business = cached.business || {};
+        applyBusiness();
+        if (cached.nextInvoiceId) document.getElementById('invoiceIdPreview').value = cached.nextInvoiceId;
+      } catch (err) {}
+    }
+
+    function saveBootstrapCache(data) {
+      try {
+        localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify({
+          business: data.business || state.business || {},
+          nextInvoiceId: data.nextInvoiceId || document.getElementById('invoiceIdPreview').value || '',
+          savedAt: Date.now()
+        }));
+      } catch (err) {}
     }
 
     function applyBusiness() {
@@ -677,15 +702,23 @@
         if (!res.ok) throw new Error(res.message);
         toast(res.message || 'Nota berhasil dibuat.');
 
+        // Gunakan nomor berikutnya yang sudah dikirim backend. Tidak perlu
+        // request tambahan hanya untuk memperbarui preview nomor nota.
+        if (res.nextInvoiceId) {
+          document.getElementById('invoiceIdPreview').value = res.nextInvoiceId;
+          saveBootstrapCache({ business: state.business, nextInvoiceId: res.nextInvoiceId });
+        }
+
+        invalidateInvoiceListCache();
+
         if (sendAfterSave) {
           const mode = await sendInvoiceWithImage(res.invoice, res.items, 'awal');
-          await api('markFirstInvoiceSent', { invoiceId: res.invoice.invoiceId, mode });
+          // Pencatatan status kirim tidak perlu menahan pengguna menunggu.
+          api('markFirstInvoiceSent', { invoiceId: res.invoice.invoiceId, mode }).catch(() => {});
         }
 
         resetForm(false);
-        const next = await api('getNextInvoiceNumber', {});
-        if (next.ok) document.getElementById('invoiceIdPreview').value = next.invoiceId;
-        await loadInvoices();
+        if (isListSectionActive()) loadInvoices(true);
       } catch (err) {
         toast(err.message || 'Gagal menyimpan nota.');
       } finally {
@@ -733,20 +766,77 @@
       }
     }
 
-    async function loadInvoices() {
-      try {
-        const payload = {
-          query: document.getElementById('searchQuery')?.value || '',
-          status: document.getElementById('statusFilter')?.value || 'Semua Status',
-          dateFrom: document.getElementById('dateFrom')?.value || '',
-          dateTo: document.getElementById('dateTo')?.value || ''
-        };
-        const res = await api('listInvoices', { payload });
-        if (!res.ok) throw new Error(res.message);
-        renderInvoiceRows(res.items || []);
-      } catch (err) {
-        document.getElementById('invoiceRows').innerHTML = `<tr><td colspan="7" class="empty">${escapeHtml(err.message || 'Gagal memuat data.')}</td></tr>`;
+    async function loadInvoices(force = false) {
+      const payload = {
+        query: document.getElementById('searchQuery')?.value || '',
+        status: document.getElementById('statusFilter')?.value || 'Semua Status',
+        dateFrom: document.getElementById('dateFrom')?.value || '',
+        dateTo: document.getElementById('dateTo')?.value || '',
+        limit: 60
+      };
+      const cacheKey = makeListCacheKey(payload);
+      const cached = readInvoiceListCache(cacheKey);
+
+      // Daftar terakhir ditampilkan seketika. Jika cache sudah agak lama,
+      // backend diperbarui di latar belakang tanpa membuat layar kosong.
+      if (cached && Array.isArray(cached.items)) renderInvoiceRows(cached.items);
+      if (!force && cached && Date.now() - cached.savedAt < LIST_CACHE_FRESH_MS) return;
+      if (!force && state.invoiceListPromise && state.invoiceListCacheKey === cacheKey) return state.invoiceListPromise;
+
+      if (!cached) {
+        document.getElementById('invoiceRows').innerHTML = '<tr><td colspan="7" class="empty">Memuat daftar nota...</td></tr>';
       }
+
+      state.invoiceListCacheKey = cacheKey;
+      state.invoiceListPromise = api('listInvoices', { payload })
+        .then(res => {
+          if (!res.ok) throw new Error(res.message);
+          const data = { items: res.items || [], savedAt: Date.now() };
+          writeInvoiceListCache(cacheKey, data);
+          renderInvoiceRows(data.items);
+          state.invoiceListLoadedAt = data.savedAt;
+          return data.items;
+        })
+        .catch(err => {
+          if (!cached) {
+            document.getElementById('invoiceRows').innerHTML = `<tr><td colspan="7" class="empty">${escapeHtml(err.message || 'Gagal memuat data.')}</td></tr>`;
+          } else {
+            toast('Menampilkan daftar tersimpan. Pembaruan data gagal dimuat.');
+          }
+          return cached ? cached.items : [];
+        })
+        .finally(() => {
+          state.invoiceListPromise = null;
+        });
+
+      return state.invoiceListPromise;
+    }
+
+    function makeListCacheKey(payload) {
+      return LIST_CACHE_PREFIX + encodeURIComponent(JSON.stringify(payload));
+    }
+
+    function readInvoiceListCache(key) {
+      try { return JSON.parse(sessionStorage.getItem(key) || 'null'); } catch (err) { return null; }
+    }
+
+    function writeInvoiceListCache(key, data) {
+      try { sessionStorage.setItem(key, JSON.stringify(data)); } catch (err) {}
+    }
+
+    function invalidateInvoiceListCache() {
+      try {
+        Object.keys(sessionStorage).forEach(key => {
+          if (key.indexOf(LIST_CACHE_PREFIX) === 0) sessionStorage.removeItem(key);
+        });
+      } catch (err) {}
+      state.invoiceListPromise = null;
+      state.invoiceListCacheKey = '';
+      state.invoiceListLoadedAt = 0;
+    }
+
+    function isListSectionActive() {
+      return document.getElementById('section-list').classList.contains('active');
     }
 
     function renderInvoiceRows(items) {
@@ -877,7 +967,8 @@
         state.paidResult = res;
         closeModal('paidModal');
         openModal('successModal');
-        await loadInvoices();
+        invalidateInvoiceListCache();
+        if (isListSectionActive()) loadInvoices(true);
       } catch (err) {
         toast(err.message || 'Gagal validasi pembayaran.');
       } finally {
@@ -893,7 +984,8 @@
         await api('markPaidNoteSent', { invoiceId: res.invoice.invoiceId, mode });
         toast('Nota lunas ditandai terkirim.');
         closeModal('successModal');
-        await loadInvoices();
+        invalidateInvoiceListCache();
+        if (isListSectionActive()) loadInvoices(true);
       } catch (err) {
         toast(err.message || 'Gagal mengirim nota lunas.');
       }
@@ -1262,6 +1354,13 @@
       const parts = String(value).slice(0,10).split('-');
       if (parts.length !== 3) return value;
       return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    function formatDateTime(value) {
+      if (!value) return '-';
+      const text = String(value).replace('T', ' ');
+      const date = text.slice(0, 10);
+      const time = text.slice(11, 16);
+      return formatDateHuman(date) + (time ? ' ' + time : '');
     }
     function normalizePhone(phone) {
       let digits = String(phone || '').replace(/\D/g, '');
