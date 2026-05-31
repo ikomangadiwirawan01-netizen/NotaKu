@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nota Online</title>
-  <script type="text/javascript" src="https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=Mf5eNakRkQpVv15N9bVNXRuQMGLR_66TojOzY-YAhEKcLAtb76Dtco11xCz7n41U3BioGDOE37paT54C302GHhPaSU4EjbMuyAhiS9B0jRPX_apDsPZneJt_dX_MAb0fUblQ7l3ErmqPnMbq-E_AkqcWykqA_GDehCO5p5zQQm1NB8GQyrmUJ-0I-k3FmX_m8l5IJ7ZJrTfXzi2q9Fz8SSwLGNJXbWF9eg6_6XrIKQDiRVvOhJjtupNwRuCxRiK10DOvE74TZUQdT3LRe1bAqQfUS5BSCEda50ZkNInvBtsfaaHbof3aMJqEK_nCtBtu" charset="UTF-8"></script><style>
+  <style>
     :root {
       --blue: #0f62fe;
       --dark: #0f172a;
@@ -27,15 +27,15 @@
     .btn { border: 1px solid var(--line); background: white; border-radius: 10px; padding: 10px 14px; font-weight: 800; cursor: pointer; color: var(--dark); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
     .btn.primary { background: var(--blue); color: white; border-color: var(--blue); }
     .paper { position: relative; background: white; border: 1px solid var(--line); border-radius: 20px; padding: 36px; box-shadow: 0 18px 50px rgba(15,23,42,.08); overflow: hidden; }
-    .watermark { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; transform: rotate(-24deg); font-size: clamp(84px, 18vw, 170px); font-weight: 1000; color: rgba(22, 163, 74, .10); pointer-events: none; letter-spacing: .08em; }
+    .watermark { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; transform: rotate(-24deg); font-size: clamp(84px, 18vw, 170px); font-weight: 1000; color: rgba(22, 163, 74, .12); pointer-events: none; letter-spacing: .08em; z-index: 5; }
     .paid .watermark { display: flex; }
-    .header { text-align: center; border-bottom: 2px dashed #94a3b8; padding-bottom: 24px; margin-bottom: 22px; position: relative; z-index: 1; }
+    .header { text-align: center; border-bottom: 2px dashed #94a3b8; padding-bottom: 24px; margin-bottom: 22px; position: relative; z-index: 2; }
     .invoice-title { font-size: 34px; letter-spacing: .03em; margin: 0 0 16px; font-weight: 1000; }
     .shop { display: flex; align-items: center; justify-content: center; gap: 16px; }
     .logo { width: 72px; height: 72px; border-radius: 50%; background: #0f254d; color: white; display: grid; place-items: center; font-size: 36px; }
     .shop h2 { margin: 0; font-size: 27px; }
     .shop p { margin: 5px 0; color: var(--muted); }
-    .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-bottom: 2px dashed #94a3b8; padding-bottom: 18px; margin-bottom: 22px; position: relative; z-index: 1; }
+    .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-bottom: 2px dashed #94a3b8; padding-bottom: 18px; margin-bottom: 22px; position: relative; z-index: 2; }
     .meta-box { display: grid; gap: 10px; }
     .line { display: grid; grid-template-columns: 150px 1fr; gap: 10px; font-size: 15px; }
     .line b { color: #334155; }
@@ -43,20 +43,21 @@
     .status.paid { background: #dcfce7; color: #15803d; }
     .status.wait { background: #fff7ed; color: #c2410c; }
     .status.unpaid { background: #f1f5f9; color: #475569; }
-    table { width: 100%; border-collapse: collapse; position: relative; z-index: 1; }
+    table { width: 100%; border-collapse: collapse; position: relative; z-index: 2; }
     th { background: #0f254d; color: white; padding: 12px; text-align: left; }
     th:first-child { border-radius: 9px 0 0 9px; }
     th:last-child { border-radius: 0 9px 9px 0; }
     td { padding: 13px 12px; border-bottom: 1px solid var(--line); }
     .right { text-align: right; }
     .center { text-align: center; }
-    .totals { width: min(360px, 100%); margin-left: auto; margin-top: 18px; position: relative; z-index: 1; }
+    .totals { width: min(360px, 100%); margin-left: auto; margin-top: 18px; position: relative; z-index: 2; }
     .total-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #cbd5e1; }
     .grand { margin-top: 10px; background: #eff6ff; color: var(--blue); padding: 14px; border-radius: 12px; font-size: 22px; font-weight: 1000; display: flex; justify-content: space-between; }
-    .payment-box { margin-top: 22px; border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: #fbfdff; position: relative; z-index: 1; }
+    .payment-box { margin-top: 22px; border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: #fbfdff; position: relative; z-index: 2; }
     .payment-box h3 { margin: 0 0 12px; }
     .payment-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px 20px; }
-    .note { margin-top: 20px; text-align: center; color: #334155; border-top: 2px dashed #94a3b8; padding-top: 18px; position: relative; z-index: 1; }
+    .payment-box, .payment-grid > div, .payment-box p { overflow-wrap: anywhere; word-break: break-word; }
+    .note { margin-top: 20px; text-align: center; color: #334155; border-top: 2px dashed #94a3b8; padding-top: 18px; position: relative; z-index: 2; }
     .error { background: white; border: 1px solid var(--line); padding: 28px; border-radius: 16px; text-align: center; }
     .muted { color: var(--muted); }
 
@@ -299,7 +300,10 @@
           </section>` : `
           <section class="payment-box">
             <h3>Informasi Pembayaran</h3>
-            <p style="margin:0">Pembayaran dilakukan secara <b>${escapeHtml(inv.paymentMethod)}</b>.</p>
+            <div class="payment-grid">
+              <div><b>Metode</b><br>${escapeHtml(inv.paymentMethod)}</div>
+              <div><b>Status</b><br><span class="status ${statusClass(inv.status)}">${escapeHtml(inv.status)}</span></div>
+            </div>
           </section>`}
 
           ${inv.note ? `<section class="payment-box"><h3>Catatan</h3><p style="margin:0">${escapeHtml(inv.note)}</p></section>` : ''}
