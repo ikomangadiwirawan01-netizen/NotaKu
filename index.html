@@ -1065,9 +1065,9 @@
           const width = 1080;
           const rowH = 54;
           const baseH = 920;
-          const payH = isTransfer(inv.paymentMethod) ? 170 : 105;
+          const paymentBoxH = isTransfer(inv.paymentMethod) ? 150 : 125;
           const noteH = inv.note ? 80 : 0;
-          const height = baseH + Math.max(items.length, 1) * rowH + payH + noteH;
+          const height = baseH + Math.max(items.length, 1) * rowH + paymentBoxH + noteH + 20;
           const canvas = document.createElement('canvas');
           canvas.width = width;
           canvas.height = height;
@@ -1083,17 +1083,6 @@
 
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, width, height);
-
-          if (isPaid) {
-            ctx.save();
-            ctx.translate(width / 2, height / 2);
-            ctx.rotate(-Math.PI / 7);
-            ctx.textAlign = 'center';
-            ctx.font = '900 150px Arial, sans-serif';
-            ctx.fillStyle = 'rgba(22, 163, 74, 0.12)';
-            ctx.fillText('LUNAS', 0, 0);
-            ctx.restore();
-          }
 
           let y = 56;
           ctx.textAlign = 'center';
@@ -1188,7 +1177,7 @@
           ctx.fillText(rupiah(inv.total), totalX + 350, y + 38);
           y += 92;
 
-          roundRect(ctx, 70, y, width - 140, payH - 20, 14, true, true, '#fbfdff', line);
+          roundRect(ctx, 70, y, width - 140, paymentBoxH, 14, true, true, '#fbfdff', line);
           ctx.fillStyle = dark;
           ctx.font = '900 24px Arial, sans-serif';
           ctx.textAlign = 'left';
@@ -1200,10 +1189,10 @@
             drawInfo(ctx, 560, y + 76, 'Atas Nama', inv.accountName || '-');
             drawInfo(ctx, 560, y + 112, 'Status', inv.status);
           } else {
-            drawInfo(ctx, 95, y + 78, 'Metode', inv.paymentMethod);
-            drawInfo(ctx, 95, y + 114, 'Status', inv.status);
+            drawInfo(ctx, 95, y + 76, 'Metode', inv.paymentMethod);
+            drawInfo(ctx, 95, y + 112, 'Status', inv.status);
           }
-          y += payH;
+          y += paymentBoxH + 24;
 
           if (inv.note) {
             roundRect(ctx, 70, y, width - 140, 70, 14, true, true, '#fbfdff', line);
@@ -1224,6 +1213,17 @@
           ctx.fillStyle = muted;
           ctx.font = '500 19px Arial, sans-serif';
           ctx.fillText(isPaid ? 'Nota ini merupakan bukti pembayaran lunas.' : 'Silakan selesaikan pembayaran sesuai metode yang dipilih.', width / 2, y + 32);
+
+          if (isPaid) {
+            ctx.save();
+            ctx.translate(width / 2, height / 2);
+            ctx.rotate(-Math.PI / 7);
+            ctx.textAlign = 'center';
+            ctx.font = '900 190px Arial, sans-serif';
+            ctx.fillStyle = 'rgba(22, 163, 74, 0.14)';
+            ctx.fillText('LUNAS', 0, 0);
+            ctx.restore();
+          }
 
           canvas.toBlob(blob => {
             if (!blob) return reject(new Error('Gagal membuat gambar nota.'));
