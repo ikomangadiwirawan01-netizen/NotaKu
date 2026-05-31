@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NotaKu Admin</title>
-  <script type="text/javascript" src="https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=ocecUczExpJ-nV0_Hu2KnJ7EUJ0vm6p7NtruU8eUG3U95K5ZXQzLHuY7Y84mf8LGsGXmJzn4Jd9mLphqehCkJ6aVf8NQu0D3_o3es3CyWNRfoKoT-teLMvIl7OMrM35ELUB9WeQ3DOKABsMnWHE7jdnHylDQTb3n8dDnafbPzs9wpMDJR2_kb-OIcR80liBPhGaLiDwwdMNmc5zA3rlYNYFhFS66xDekng5-as9V1_Xt8YgoEP4UKeBQqquHwn5HYUYEpBRMiy2vWbj7FoRLr09sA-HGCOMYoQZPv_ENhIpXiurDfw3GC2JJsaceJkRf" charset="UTF-8"></script><style>
+  <style>
     :root {
       --blue: #0f62fe;
       --blue-2: #0b54d6;
@@ -114,17 +114,118 @@
       .toolbar-list { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 640px) {
-      .topbar { align-items: flex-start; }
+      body { background: #f8fafc; }
+      .sidebar { padding: 11px 10px; border-radius: 0 0 14px 14px; }
+      .brand { margin-bottom: 9px; gap: 7px; font-size: 17px; }
+      .brand-icon { width: 30px; height: 30px; border-radius: 8px; font-size: 15px; }
+      .sidebar-footer { display: none; }
+      .nav { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+      .nav button { min-height: 48px; padding: 6px 3px; border-radius: 9px; gap: 2px; justify-content: center; flex-direction: column; text-align: center; font-size: 10px; line-height: 1.15; }
+      .main { padding: 10px; }
+      .topbar { align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; }
       .admin-profile { display:none; }
-      .page-title h1 { font-size: 25px; }
-      .form-grid, .form-grid.three { grid-template-columns: 1fr; }
-      .card { padding: 15px; border-radius: 14px; }
-      .actions { display:grid; grid-template-columns: 1fr 1fr; }
+      .page-title h1 { font-size: 22px; }
+      .page-title p { margin-top: 2px; font-size: 12px; }
+      .grid-create { gap: 10px; }
+      .card { padding: 12px; margin-bottom: 10px; border-radius: 12px; }
+      .card-title { gap: 6px; margin-bottom: 10px; font-size: 15px; }
+      .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+      .form-grid:not(.three) .field:nth-child(n+3) { grid-column: 1 / -1; }
+      .form-grid.three { grid-template-columns: 82px minmax(0, 1fr); gap: 8px; }
+      .form-grid.three .field:first-child { grid-column: 1 / -1; }
+      .field label { margin-bottom: 4px; font-size: 12px; }
+      .field input, .field select, .field textarea { min-height: 39px; padding: 8px 9px; border-radius: 8px; font-size: 14px; }
+      .help { margin-top: 4px; font-size: 11px; }
+      .btn { min-height: 39px; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+      .actions { display:grid; grid-template-columns: 1fr 1fr; gap: 7px; }
       .actions .btn.green { grid-column: 1 / -1; }
-      .toolbar-list { grid-template-columns: 1fr; }
-      .table-wrap { overflow-x: auto; }
-      table { min-width: 620px; }
-      .summary-total { font-size: 20px; }
+      .summary-row { padding: 7px 0; font-size: 13px; }
+      .summary-total { margin-top: 8px; padding-top: 8px; font-size: 18px; }
+      .alert { margin-top: 10px !important; padding: 10px; border-radius: 9px; font-size: 12px; line-height: 1.4; }
+      .toolbar-list { grid-template-columns: 1fr; gap: 8px; }
+
+      /* HP: seluruh halaman wajib mengikuti lebar layar, tanpa scroll ke samping. */
+      html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+      .app, .main, .section, .grid-create, .card, aside, .toolbar-list,
+      .table-wrap, .actions, .field, .modal, .modal-grid, .modal-line {
+        min-width: 0;
+        max-width: 100%;
+      }
+      .field input, .field select, .field textarea { min-width: 0; max-width: 100%; }
+      #bankFields .field > div { min-width: 0; max-width: 100%; }
+      #accountNumber { flex: 1 1 auto; width: 0; min-width: 0; }
+      .table-wrap { width: 100%; overflow: visible; }
+
+      /* Tabel admin di HP diubah menjadi kartu vertikal agar tidak melebar. */
+      #itemRows, #invoiceRows,
+      #itemRows tr, #invoiceRows tr,
+      #itemRows td, #invoiceRows td { display: block; width: 100%; max-width: 100%; }
+      #itemRows tr, #invoiceRows tr {
+        margin: 0 0 9px;
+        padding: 8px 9px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+      }
+      #itemRows td, #invoiceRows td {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 5px 0;
+        border-bottom: 1px dashed #e2e8f0;
+        text-align: right !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      #itemRows td:last-child, #invoiceRows td:last-child { border-bottom: 0; }
+      #itemRows td::before, #invoiceRows td::before {
+        flex: 0 0 41%;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 800;
+        text-align: left;
+      }
+      #itemRows td:nth-child(1)::before { content: 'No'; }
+      #itemRows td:nth-child(2)::before { content: 'Produk'; }
+      #itemRows td:nth-child(3)::before { content: 'Qty'; }
+      #itemRows td:nth-child(4)::before { content: 'Harga'; }
+      #itemRows td:nth-child(5)::before { content: 'Subtotal'; }
+      #itemRows td:nth-child(6)::before { content: 'Aksi'; }
+      #invoiceRows td:nth-child(1)::before { content: 'No. Nota'; }
+      #invoiceRows td:nth-child(2)::before { content: 'Tanggal'; }
+      #invoiceRows td:nth-child(3)::before { content: 'Pelanggan'; }
+      #invoiceRows td:nth-child(4)::before { content: 'Total'; }
+      #invoiceRows td:nth-child(5)::before { content: 'Metode'; }
+      #invoiceRows td:nth-child(6)::before { content: 'Status'; }
+      #invoiceRows td:nth-child(7)::before { content: 'Aksi'; }
+      #itemRows .empty, #invoiceRows .empty {
+        display: block;
+        padding: 13px 6px;
+        border: 0;
+        text-align: center !important;
+      }
+      #itemRows .empty::before, #invoiceRows .empty::before { display: none; content: none; }
+      #itemRows .small-actions, #invoiceRows .small-actions { min-width: 0; justify-content: flex-end; }
+      #itemRows + *, #invoiceRows + * { max-width: 100%; }
+      .table-wrap table { width: 100%; min-width: 0; table-layout: fixed; }
+      .table-wrap thead { display: none; }
+      th { padding: 9px 8px; font-size: 12px; }
+      td { padding: 9px 8px; font-size: 12px; }
+      .empty { padding: 18px 10px; }
+      .small-btn { min-height: 31px; padding: 6px 8px; font-size: 11px; }
+      .modal-backdrop { padding: 10px 0 0; align-items: flex-end; overflow-x: hidden; }
+      .modal { width: 100%; max-height: 88vh; overflow-y: auto; overflow-x: hidden; padding: 15px; border-radius: 16px 16px 0 0; }
+      .modal h2 { font-size: 19px; }
+      .modal p { margin: 6px 0; font-size: 13px; }
+      .modal-grid { gap: 5px; margin: 10px 0; }
+      .modal-line { padding: 6px 0; gap: 8px; font-size: 12px; overflow-wrap: anywhere; word-break: break-word; }
+      .modal-line span, .modal-line b { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+      .toast { right: 10px; left: 10px; bottom: 10px; max-width: none; padding: 11px 12px; font-size: 13px; overflow-wrap: anywhere; }
+    }
+    @media (max-width: 380px) {
+      .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .nav button { min-height: 38px; flex-direction: row; gap: 5px; }
     }
   </style>
 </head>
@@ -409,8 +510,7 @@
       items: [],
       selectedInvoice: null,
       paidResult: null,
-      loading: false,
-      listLoaded: false
+      loading: false
     };
 
     function init() {
@@ -445,12 +545,14 @@
     async function loadInitialData() {
       try {
         setLoading(true);
-        const setup = await api('bootstrapAdmin', {});
+        const setup = await api('setupDatabase', {});
         if (!setup.ok) throw new Error(setup.message);
         state.business = setup.business || {};
         applyBusiness();
-        document.getElementById('invoiceIdPreview').value = setup.nextInvoiceId || 'Siap dibuat';
+        const next = await api('getNextInvoiceNumber', {});
+        if (next.ok) document.getElementById('invoiceIdPreview').value = next.invoiceId;
         handlePaymentMethodChange();
+        await loadInvoices();
       } catch (err) {
         toast(err.message || 'Gagal memuat data awal.');
       } finally {
@@ -567,28 +669,24 @@
     }
 
     async function saveInvoice(sendAfterSave) {
-      const payload = collectPayload();
-      if (!payload) return;
-
-      const pendingWaTab = sendAfterSave ? prepareWhatsAppWindow() : null;
-
       try {
+        const payload = collectPayload();
+        if (!payload) return;
         setLoading(true);
         const res = await api('createInvoice', { payload });
         if (!res.ok) throw new Error(res.message);
-
-        resetForm(false);
-        document.getElementById('invoiceIdPreview').value = res.nextInvoiceId || incrementInvoiceIdLocal(res.invoice.invoiceId);
-        setLoading(false);
-        toast('Nota tersimpan.');
+        toast(res.message || 'Nota berhasil dibuat.');
 
         if (sendAfterSave) {
-          const mode = await sendInvoiceWithImage(res.invoice, res.items, 'awal', pendingWaTab);
-          api('markFirstInvoiceSent', { invoiceId: res.invoice.invoiceId, mode })
-            .catch(() => {});
+          const mode = await sendInvoiceWithImage(res.invoice, res.items, 'awal');
+          await api('markFirstInvoiceSent', { invoiceId: res.invoice.invoiceId, mode });
         }
+
+        resetForm(false);
+        const next = await api('getNextInvoiceNumber', {});
+        if (next.ok) document.getElementById('invoiceIdPreview').value = next.invoiceId;
+        await loadInvoices();
       } catch (err) {
-        if (pendingWaTab && !pendingWaTab.closed) pendingWaTab.close();
         toast(err.message || 'Gagal menyimpan nota.');
       } finally {
         setLoading(false);
@@ -645,7 +743,6 @@
         };
         const res = await api('listInvoices', { payload });
         if (!res.ok) throw new Error(res.message);
-        state.listLoaded = true;
         renderInvoiceRows(res.items || []);
       } catch (err) {
         document.getElementById('invoiceRows').innerHTML = `<tr><td colspan="7" class="empty">${escapeHtml(err.message || 'Gagal memuat data.')}</td></tr>`;
@@ -722,16 +819,13 @@
       const data = state.selectedInvoice;
       if (!data || !data.invoice) return;
       const inv = data.invoice;
-      const pendingWaTab = prepareWhatsAppWindow();
-
       try {
-        const mode = await sendInvoiceWithImage(inv, data.items, 'awal', pendingWaTab);
-        api('markFirstInvoiceSent', { invoiceId: inv.invoiceId, mode }).catch(() => {});
-        toast('WhatsApp dibuka. Tagihan awal siap dikirim.');
+        const mode = await sendInvoiceWithImage(inv, data.items, 'awal');
+        await api('markFirstInvoiceSent', { invoiceId: inv.invoiceId, mode });
+        toast('Tagihan awal ditandai terkirim.');
         closeModal('detailModal');
-        refreshInvoiceListInBackground();
+        await loadInvoices();
       } catch (err) {
-        if (pendingWaTab && !pendingWaTab.closed) pendingWaTab.close();
         toast(err.message || 'Gagal mengirim tagihan awal.');
       }
     }
@@ -783,7 +877,7 @@
         state.paidResult = res;
         closeModal('paidModal');
         openModal('successModal');
-        refreshInvoiceListInBackground();
+        await loadInvoices();
       } catch (err) {
         toast(err.message || 'Gagal validasi pembayaran.');
       } finally {
@@ -794,16 +888,13 @@
     async function sendPaidWhatsApp() {
       const res = state.paidResult;
       if (!res || !res.invoice) return;
-      const pendingWaTab = prepareWhatsAppWindow();
-
       try {
-        const mode = await sendInvoiceWithImage(res.invoice, res.items, 'lunas', pendingWaTab);
-        api('markPaidNoteSent', { invoiceId: res.invoice.invoiceId, mode }).catch(() => {});
-        toast('WhatsApp dibuka. Nota lunas siap dikirim.');
+        const mode = await sendInvoiceWithImage(res.invoice, res.items, 'lunas');
+        await api('markPaidNoteSent', { invoiceId: res.invoice.invoiceId, mode });
+        toast('Nota lunas ditandai terkirim.');
         closeModal('successModal');
-        refreshInvoiceListInBackground();
+        await loadInvoices();
       } catch (err) {
-        if (pendingWaTab && !pendingWaTab.closed) pendingWaTab.close();
         toast(err.message || 'Gagal mengirim nota lunas.');
       }
     }
@@ -849,31 +940,12 @@
       return lines.join('\n');
     }
 
-    async function sendInvoiceWithImage(inv, items, type, pendingWaTab = null) {
+    async function sendInvoiceWithImage(inv, items, type) {
       const isPaid = type === 'lunas' || inv.status === 'Lunas';
       const message = isPaid ? buildPaidMessage(inv, items) : buildFirstMessage(inv, items);
       const filename = `${isPaid ? 'nota-lunas' : 'tagihan'}-${inv.invoiceId}.png`;
-      const whatsappUrl = buildWaUrl(inv.customerPhone, message);
-
-      // Laptop/desktop: buka wa.me secepat mungkin. Gambar diproses
-      // setelahnya di latar belakang supaya pengguna tidak menunggu.
-      if (!shouldUseNativeFileShare()) {
-        openPreparedWhatsAppWindow(pendingWaTab, whatsappUrl);
-        toast('WhatsApp dibuka. Gambar nota sedang disiapkan...');
-
-        createInvoiceImageFile(inv, items || [], isPaid, filename)
-          .then(file => {
-            downloadBlob(file, filename);
-            toast('Gambar nota sudah diunduh. Lampirkan PNG tersebut di WhatsApp.');
-          })
-          .catch(() => toast('WhatsApp sudah dibuka, tetapi gambar nota gagal dibuat.'));
-
-        return isPaid ? 'Manual WhatsApp Cepat + Gambar Lunas' : 'Manual WhatsApp Cepat + Gambar Tagihan';
-      }
-
-      // HP: gambar dibuat terlebih dahulu karena Web Share dapat
-      // mengirim file gambar dan teks sekaligus.
       const file = await createInvoiceImageFile(inv, items || [], isPaid, filename);
+
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
@@ -890,8 +962,8 @@
       }
 
       downloadBlob(file, filename);
-      openPreparedWhatsAppWindow(pendingWaTab, whatsappUrl);
-      toast('Gambar nota sudah diunduh. Lampirkan PNG tersebut di WhatsApp.');
+      window.open(buildWaUrl(inv.customerPhone, message), '_blank');
+      toast('Gambar nota sudah diunduh. Lampirkan gambar PNG itu di WhatsApp yang terbuka.');
       return isPaid ? 'Manual WhatsApp + Download Gambar Lunas' : 'Manual WhatsApp + Download Gambar Tagihan';
     }
 
@@ -1141,41 +1213,6 @@
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 3000);
-    }
-
-    function shouldUseNativeFileShare() {
-      const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
-      return mobile && typeof navigator.share === 'function' && typeof navigator.canShare === 'function';
-    }
-
-    function prepareWhatsAppWindow() {
-      if (shouldUseNativeFileShare()) return null;
-      try {
-        return window.open('about:blank', '_blank');
-      } catch (err) {
-        return null;
-      }
-    }
-
-    function openPreparedWhatsAppWindow(tab, url) {
-      if (tab && !tab.closed) {
-        tab.location.href = url;
-        return;
-      }
-      window.open(url, '_blank');
-    }
-
-    function refreshInvoiceListInBackground() {
-      const listSection = document.getElementById('section-list');
-      if (!listSection || !listSection.classList.contains('active')) return;
-      loadInvoices().catch(() => {});
-    }
-
-    function incrementInvoiceIdLocal(invoiceId) {
-      const match = String(invoiceId || '').match(/^(.*-)(\d+)$/);
-      if (!match) return 'Siap dibuat';
-      const next = String(Number(match[2]) + 1).padStart(match[2].length, '0');
-      return match[1] + next;
     }
 
     function buildWaUrl(phone, message) {
