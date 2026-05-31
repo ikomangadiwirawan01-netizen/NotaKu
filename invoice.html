@@ -61,19 +61,55 @@
     .muted { color: var(--muted); }
 
     @media (max-width: 720px) {
-      body { padding: 12px; }
-      .paper { padding: 20px; border-radius: 16px; }
-      .toolbar { position: sticky; top: 0; z-index: 10; background: #f6f8fb; padding: 8px 0; }
-      .invoice-title { font-size: 26px; }
-      .shop { flex-direction: column; }
-      .meta { grid-template-columns: 1fr; gap: 10px; }
-      .line { grid-template-columns: 125px 1fr; font-size: 14px; }
-      th, td { font-size: 13px; padding: 10px 8px; }
+      body { padding: 7px; }
+      .wrap { max-width: 100%; }
+      .toolbar { position: sticky; top: 0; z-index: 10; margin-bottom: 7px; padding: 4px 0; background: #f6f8fb; flex-wrap: wrap; }
+      .btn { padding: 8px 9px; border-radius: 8px; font-size: 12px; gap: 5px; }
+      .paper { padding: 13px; border-radius: 12px; box-shadow: 0 8px 22px rgba(15,23,42,.07); }
+      .watermark { font-size: clamp(72px, 25vw, 116px); }
+      .header { padding-bottom: 12px; margin-bottom: 12px; }
+      .invoice-title { margin-bottom: 9px; font-size: 22px; }
+      .shop { flex-direction: row; justify-content: flex-start; gap: 10px; text-align: left; }
+      .logo { width: 45px; height: 45px; flex: 0 0 45px; font-size: 23px; }
+      .shop h2 { font-size: 18px; }
+      .shop p { margin: 2px 0; font-size: 11px; line-height: 1.3; }
+      .meta { grid-template-columns: 1fr; gap: 5px; margin-bottom: 12px; padding-bottom: 12px; }
+      .meta-box { gap: 5px; }
+      .line { grid-template-columns: 105px minmax(0, 1fr); gap: 5px; font-size: 12px; line-height: 1.35; }
+      .status { padding: 4px 8px; font-size: 10px; white-space: normal; }
+
+      /* HP: nota harus pas di layar dan tidak boleh scroll ke samping. */
+      html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+      .wrap, .paper, .toolbar, .header, .shop, .meta, .meta-box,
+      .table-scroll, .totals, .payment-box, .payment-grid, .note {
+        min-width: 0;
+        max-width: 100%;
+      }
+      .shop > div:last-child, .line span, .line b, .payment-grid > div {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .table-scroll { width: 100%; overflow: visible; }
+      table { width: 100%; min-width: 0; table-layout: fixed; }
+      th, td { padding: 7px 4px; font-size: 11px; overflow-wrap: anywhere; word-break: break-word; }
+      th:first-child, td:first-child { width: 30px !important; }
+      th:nth-child(2), td:nth-child(2) { width: auto !important; }
+      th:nth-child(3), td:nth-child(3) { width: 38px !important; }
+      th:nth-child(5), td:nth-child(5) { width: 92px !important; }
+      th:first-child { border-radius: 7px 0 0 7px; }
+      th:last-child { border-radius: 0 7px 7px 0; }
       .hide-mobile { display: none; }
-      .grand { font-size: 18px; }
-      .payment-grid { grid-template-columns: 1fr; }
-      .table-scroll { overflow-x:auto; }
-      table { min-width: 520px; }
+      .totals { width: 100%; margin-top: 10px; }
+      .total-row { padding: 7px 0; font-size: 13px; }
+      .grand { margin-top: 6px; padding: 10px; border-radius: 9px; font-size: 17px; }
+      .payment-box { margin-top: 12px; padding: 11px; border-radius: 10px; font-size: 12px; }
+      .payment-box h3 { margin-bottom: 7px; font-size: 15px; }
+      .payment-grid { grid-template-columns: 1fr; gap: 6px; }
+      .note { margin-top: 12px; padding-top: 12px; }
+      .note h3 { margin: 0 0 5px; font-size: 15px; }
+      .note p { margin: 0; font-size: 12px; line-height: 1.4; }
+      .error { padding: 20px 14px; border-radius: 12px; }
     }
 
     @media print {
